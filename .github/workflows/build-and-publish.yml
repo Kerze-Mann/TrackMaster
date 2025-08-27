@@ -196,58 +196,61 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ needs.update-version.outputs.version }}
-          release_name: TrackMaster v${{ needs.update-version.outputs.version }}
-          body: |
-            # TrackMaster v${{ needs.update-version.outputs.version }}
-            
-            AI-powered audio mastering server with intelligent EQ, compression, and loudness normalization.
-            
-            ## 🐳 Docker Images
-            
-            ```bash
-            # Pull specific version
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.update-version.outputs.version }}
-            
-            # Pull latest
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ```
-            
-            ## 🚀 Quick Start
-            
-            ```bash
-            # Run the server
-            docker run -p 8000:8000 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.update-version.outputs.version }}
-            
-            # Test the API
-            curl http://localhost:8000/health
-            
-            # Master an audio file
-            curl -X POST "http://localhost:8000/master" \
-                 -F "file=@your_audio.wav" \
-                 --output mastered_output.wav
-            ```
-            
-            ## 📚 Documentation
-            
-            - **API Documentation**: Available at `http://localhost:8000/docs` after starting the container
-            - **Health Check**: `http://localhost:8000/health`
-            - **Repository**: https://github.com/${{ github.repository }}
-            
-            ## 🔧 Supported Formats
-            
-            - **Input**: WAV, MP3, FLAC, M4A
-            - **Output**: WAV (44.1kHz)
-            
-            ## 🎯 Features
-            
-            - AI-powered mastering chain
-            - LUFS-based loudness normalization (-14 LUFS default)
-            - RESTful API with health monitoring
-            - Docker containerized deployment
-          draft: false
-          prerelease: false
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Create release notes
+          cat > release_notes.md << 'EOF'
+          # TrackMaster v${{ needs.update-version.outputs.version }}
+          
+          AI-powered audio mastering server with intelligent EQ, compression, and loudness normalization.
+          
+          ## 🐳 Docker Images
+          
+          ```bash
+          # Pull specific version
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.update-version.outputs.version }}
+          
+          # Pull latest
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          ```
+          
+          ## 🚀 Quick Start
+          
+          ```bash
+          # Run the server
+          docker run -p 8000:8000 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.update-version.outputs.version }}
+          
+          # Test the API
+          curl http://localhost:8000/health
+          
+          # Master an audio file
+          curl -X POST "http://localhost:8000/master" \
+               -F "file=@your_audio.wav" \
+               --output mastered_output.wav
+          ```
+          
+          ## 📚 Documentation
+          
+          - **API Documentation**: Available at `http://localhost:8000/docs` after starting the container
+          - **Health Check**: `http://localhost:8000/health`
+          - **Repository**: https://github.com/${{ github.repository }}
+          
+          ## 🔧 Supported Formats
+          
+          - **Input**: WAV, MP3, FLAC, M4A
+          - **Output**: WAV (44.1kHz)
+          
+          ## 🎯 Features
+          
+          - AI-powered mastering chain
+          - LUFS-based loudness normalization (-14 LUFS default)
+          - RESTful API with health monitoring
+          - Docker containerized deployment
+          EOF
+          
+          # Create the release
+          gh release create v${{ needs.update-version.outputs.version }} \
+            --title "TrackMaster v${{ needs.update-version.outputs.version }}" \
+            --notes-file release_notes.md \
+            --latest
