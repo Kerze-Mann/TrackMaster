@@ -95,9 +95,14 @@ tag:
 	git push origin v$(VERSION)
 	@echo "✅ Tag v$(VERSION) created and pushed"
 	@echo "🚀 GitHub Actions will now build and publish the Docker image"
+	@echo "📋 Check status at: https://github.com/$(shell git config --get remote.origin.url | sed 's/.*github.com[:/]\([^.]*\).*/\1/')/actions"
 
-# GitHub Actions helpers
+# GitHub Actions helpers (requires GitHub CLI)
 gh-dispatch:
+	@if ! command -v gh >/dev/null 2>&1; then \
+		echo "❌ GitHub CLI not found. Install with: brew install gh"; \
+		exit 1; \
+	fi
 	@if [ -z "$(VERSION)" ]; then \
 		echo "Usage: make gh-dispatch VERSION=1.1.0"; \
 		exit 1; \
@@ -105,13 +110,27 @@ gh-dispatch:
 	./scripts/github_actions.sh trigger $(VERSION)
 
 gh-status:
+	@if ! command -v gh >/dev/null 2>&1; then \
+		echo "❌ GitHub CLI not found. Install with: brew install gh"; \
+		echo "📋 Check status manually at: https://github.com/$(shell git config --get remote.origin.url | sed 's/.*github.com[:/]\([^.]*\).*/\1/')/actions"; \
+		exit 1; \
+	fi
 	./scripts/github_actions.sh status
 
 gh-watch:
+	@if ! command -v gh >/dev/null 2>&1; then \
+		echo "❌ GitHub CLI not found. Install with: brew install gh"; \
+		exit 1; \
+	fi
 	./scripts/github_actions.sh watch
 
 # Create and push git tag (GitHub Actions version)
 gh-tag:
+	@if ! command -v gh >/dev/null 2>&1; then \
+		echo "❌ GitHub CLI not found. Install with: brew install gh"; \
+		echo "💡 Use 'make tag VERSION=$(VERSION)' instead"; \
+		exit 1; \
+	fi
 	@if [ -z "$(VERSION)" ]; then \
 		echo "Usage: make gh-tag VERSION=1.1.0"; \
 		exit 1; \
