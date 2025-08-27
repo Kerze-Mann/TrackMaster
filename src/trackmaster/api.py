@@ -2,6 +2,7 @@
 FastAPI application for TrackMaster audio mastering service.
 """
 
+import os
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import FileResponse
 import soundfile as sf
@@ -14,6 +15,9 @@ from typing import Optional
 from .mastering import AudioMasteringEngine
 
 logger = logging.getLogger(__name__)
+
+# Get version from environment or package
+VERSION = os.getenv("TRACKMASTER_VERSION", "1.0.0")
 
 # Create directories for temporary files
 UPLOAD_DIR = Path("/tmp/uploads")
@@ -32,7 +36,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="TrackMaster AI Audio Mastering Server",
         description="AI-powered audio mastering service for WAV and MP3 files",
-        version="1.0.0"
+        version=VERSION
     )
 
     # Initialize mastering engine
@@ -49,7 +53,7 @@ def create_app() -> FastAPI:
         return {
             "status": "healthy",
             "service": "TrackMaster",
-            "version": "1.0.0",
+            "version": VERSION,
             "supported_formats": ["wav", "mp3", "flac", "m4a"]
         }
 

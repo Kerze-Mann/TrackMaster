@@ -1,0 +1,249 @@
+name: Build and Publish Docker Image
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., 1.1.0)'
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract-version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag or input
+        id: extract-version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version $VERSION"
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ steps.extract-version.outputs.version }}"
+          if ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Version must follow semantic versioning format (e.g., 1.1.0)"
+            exit 1
+          fi
+
+      - name: Update version in source files
+        run: |
+          VERSION="${{ steps.extract-version.outputs.version }}"
+          
+          # Update version in pyproject.toml
+          sed -i "s/^version = .*/version = \"$VERSION\"/" pyproject.toml
+          
+          # Update version in setup.py
+          sed -i "s/version=\"[^\"]*\"/version=\"$VERSION\"/" setup.py
+          
+          # Update version in __init__.py
+          sed -i "s/__version__ = .*/__version__ = \"$VERSION\"/" src/trackmaster/__init__.py
+
+      - name: Upload updated files
+        uses: actions/upload-artifact@v4
+        with:
+          name: updated-source-files
+          path: |
+            pyproject.toml
+            setup.py
+            src/trackmaster/__init__.py
+          retention-days: 1
+
+  build-and-test:
+    needs: update-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download updated source files
+        uses: actions/download-artifact@v4
+        with:
+          name: updated-source-files
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          build-args: |
+            VERSION=${{ needs.update-version.outputs.version }}
+          tags: |
+            trackmaster:${{ needs.update-version.outputs.version }}
+            trackmaster:latest
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker image
+        run: |
+          # Start container in detached mode
+          docker run -d --name trackmaster-test -p 8000:8000 trackmaster:${{ needs.update-version.outputs.version }}
+          
+          # Wait for container to be ready
+          sleep 10
+          
+          # Test health endpoint
+          for i in {1..30}; do
+            if curl -f http://localhost:8000/health; then
+              echo "Health check passed"
+              break
+            fi
+            echo "Waiting for service to be ready... ($i/30)"
+            sleep 2
+          done
+          
+          # Verify version in response
+          VERSION_RESPONSE=$(curl -s http://localhost:8000/health | jq -r '.version')
+          EXPECTED_VERSION="${{ needs.update-version.outputs.version }}"
+          
+          if [ "$VERSION_RESPONSE" != "$EXPECTED_VERSION" ]; then
+            echo "Version mismatch: expected $EXPECTED_VERSION, got $VERSION_RESPONSE"
+            exit 1
+          fi
+          
+          echo "✅ Version verification passed: $VERSION_RESPONSE"
+          
+          # Stop test container
+          docker stop trackmaster-test
+          docker rm trackmaster-test
+
+  publish:
+    needs: [update-version, build-and-test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download updated source files
+        uses: actions/download-artifact@v4
+        with:
+          name: updated-source-files
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},value=v${{ needs.update-version.outputs.version }}
+            type=semver,pattern={{major}},value=v${{ needs.update-version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ needs.update-version.outputs.version }}
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          build-args: |
+            VERSION=${{ needs.update-version.outputs.version }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+  create-release:
+    needs: [update-version, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.update-version.outputs.version }}
+          release_name: TrackMaster v${{ needs.update-version.outputs.version }}
+          body: |
+            # TrackMaster v${{ needs.update-version.outputs.version }}
+            
+            AI-powered audio mastering server with intelligent EQ, compression, and loudness normalization.
+            
+            ## 🐳 Docker Images
+            
+            ```bash
+            # Pull specific version
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.update-version.outputs.version }}
+            
+            # Pull latest
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ```
+            
+            ## 🚀 Quick Start
+            
+            ```bash
+            # Run the server
+            docker run -p 8000:8000 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.update-version.outputs.version }}
+            
+            # Test the API
+            curl http://localhost:8000/health
+            
+            # Master an audio file
+            curl -X POST "http://localhost:8000/master" \
+                 -F "file=@your_audio.wav" \
+                 --output mastered_output.wav
+            ```
+            
+            ## 📚 Documentation
+            
+            - **API Documentation**: Available at `http://localhost:8000/docs` after starting the container
+            - **Health Check**: `http://localhost:8000/health`
+            - **Repository**: https://github.com/${{ github.repository }}
+            
+            ## 🔧 Supported Formats
+            
+            - **Input**: WAV, MP3, FLAC, M4A
+            - **Output**: WAV (44.1kHz)
+            
+            ## 🎯 Features
+            
+            - AI-powered mastering chain
+            - LUFS-based loudness normalization (-14 LUFS default)
+            - RESTful API with health monitoring
+            - Docker containerized deployment
+          draft: false
+          prerelease: false

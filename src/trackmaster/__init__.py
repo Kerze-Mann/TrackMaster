@@ -5,7 +5,7 @@ A professional audio mastering service that uses AI to enhance audio files
 with intelligent EQ, compression, and loudness normalization.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __author__ = "TrackMaster Team"
 __email__ = "info@trackmaster.com"
 

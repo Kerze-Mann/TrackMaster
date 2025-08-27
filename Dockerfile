@@ -1,6 +1,10 @@
 # Use Python 3.11 slim image as base
 FROM python:3.11-slim
 
+# Build argument for version
+ARG VERSION=1.0.0
+ENV TRACKMASTER_VERSION=$VERSION
+
 # Set working directory
 WORKDIR /app
 

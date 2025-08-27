@@ -11,6 +11,7 @@ AI-powered audio mastering server that accepts WAV and MP3 files, performs intel
 - 🔄 **RESTful API**: Simple HTTP endpoints for integration
 - 📈 **Health Monitoring**: Built-in health checks and logging
 - 🐍 **Modern Python**: Proper package structure with setup.py and pyproject.toml
+- 🚀 **CI/CD Ready**: GitHub Actions workflow for automated Docker builds and publishing
 
 ## Project Structure
 
@@ -231,6 +232,51 @@ You can customize the mastering process by modifying the `AudioMasteringEngine` 
 
 ### Output Format
 - WAV (44.1kHz, 16/24-bit)
+
+## Deployment & CI/CD
+
+### Automated Deployment with GitHub Actions
+
+TrackMaster includes a complete GitHub Actions workflow for automated building and publishing:
+
+```bash
+# Update version and trigger deployment
+make version VERSION=1.1.0
+make tag VERSION=1.1.0
+
+# Or manually trigger workflow
+make gh-dispatch VERSION=1.1.0
+
+# Check workflow status
+make gh-status
+```
+
+This automatically:
+- ✅ Updates version in all source files  
+- ✅ Builds Docker image with proper tags
+- ✅ Publishes to GitHub Container Registry (ghcr.io)
+- ✅ Creates GitHub release with documentation
+- ✅ Tests the built image before publishing
+- ✅ Generates artifact attestation for security
+
+### Using Published Images
+
+```bash
+# Pull specific version
+docker pull ghcr.io/your-username/trackmaster:1.1.0
+
+# Pull latest release
+docker pull ghcr.io/your-username/trackmaster:latest
+
+# Run with version
+docker run -p 8000:8000 ghcr.io/your-username/trackmaster:1.1.0
+```
+
+### Workflow Triggers
+
+The GitHub Actions workflow is triggered by:
+- **Tag push**: Create and push a version tag (e.g., `v1.1.0`)
+- **Manual dispatch**: Trigger workflow manually with GitHub CLI or web interface
 
 ## Docker Deployment
 
