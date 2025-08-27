@@ -16,6 +16,7 @@ help:
 	@echo "gh-tag        Create and push git tag with GitHub Actions (usage: make gh-tag VERSION=1.1.0)"
 	@echo "gh-dispatch   Trigger GitHub Actions manually (usage: make gh-dispatch VERSION=1.1.0)"
 	@echo "gh-status     Check GitHub Actions workflow status"
+	@echo "status        Simple status check (works without GitHub CLI)"
 	@echo "gh-watch      Watch latest GitHub Actions workflow run"
 	@echo "clean         Clean build artifacts"
 
@@ -116,6 +117,10 @@ gh-status:
 		exit 1; \
 	fi
 	./scripts/github_actions.sh status
+
+# Simple status check (works without GitHub CLI)
+status:
+	./scripts/check_status.sh
 
 gh-watch:
 	@if ! command -v gh >/dev/null 2>&1; then \
