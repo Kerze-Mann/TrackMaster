@@ -1,5 +1,14 @@
-# TrackMaster
+# Tr## Features
 
+- 🎵 **Multi-format Support**: WAV, MP3, FLAC, M4A
+- 🤖 **AI-Powered Mastering**: Intelligent EQ, compression, and loudness normalization
+- 🎯 **Reference Track Matching**: Match characteristics of professional reference tracks
+- 🐳 **Docker Ready**: Easy deployment with Docker containers
+- 📊 **Industry Standards**: LUFS-based loudness normalization (-14 LUFS default)
+- 🔄 **RESTful API**: Simple HTTP endpoints for integration
+- 📈 **Health Monitoring**: Built-in health checks and logging
+- 🐍 **Modern Python**: Proper package structure with setup.py and pyproject.toml
+- 🚀 **CI/CD Ready**: GitHub Actions workflow for automated Docker builds and publishing
 AI-powered audio mastering server that accepts WAV and MP3 files, performs intelligent mastering, and returns professionally mastered tracks.
 
 ## Features
@@ -117,10 +126,11 @@ POST /master
 ```
 
 **Parameters:**
-- `file`: Audio file (multipart/form-data)
-- `target_lufs`: Target loudness in LUFS (optional, default: -14.0)
+- `file`: Audio file to master (multipart/form-data)
+- `reference_file`: Optional reference track for characteristic matching (multipart/form-data)
+- `target_lufs`: Target loudness in LUFS (optional, default: -14.0, ignored if reference provided)
 
-**Example using curl:**
+**Standard Mastering Example:**
 ```bash
 curl -X POST "http://localhost:8000/master" \
      -F "file=@your_audio_file.wav" \
@@ -128,14 +138,33 @@ curl -X POST "http://localhost:8000/master" \
      --output mastered_output.wav
 ```
 
-**Example using Python:**
+**Reference Track Mastering Example:**
+```bash
+curl -X POST "http://localhost:8000/master" \
+     -F "file=@your_audio_file.wav" \
+     -F "reference_file=@reference_track.wav" \
+     --output mastered_output.wav
+```
+
+**Python Examples:**
 ```python
 import requests
 
+# Standard mastering
 with open('input.wav', 'rb') as f:
     files = {'file': f}
     data = {'target_lufs': -14.0}
     response = requests.post('http://localhost:8000/master', files=files, data=data)
+    
+    if response.status_code == 200:
+        with open('mastered_output.wav', 'wb') as output:
+            output.write(response.content)
+
+# Reference track mastering
+with open('input.wav', 'rb') as input_file, \
+     open('reference.wav', 'rb') as ref_file:
+    files = {'file': input_file, 'reference_file': ref_file}
+    response = requests.post('http://localhost:8000/master', files=files)
     
     if response.status_code == 200:
         with open('mastered_output.wav', 'wb') as output:
