@@ -73,10 +73,10 @@ docker-compare:
 	./scripts/compare_docker_sizes.sh
 
 docker-compose-up:
-	docker-compose up --build
+	docker compose up --build
 
 docker-compose-down:
-	docker-compose down
+	docker compose down
 
 # Development server
 dev:
