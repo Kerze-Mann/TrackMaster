@@ -10,6 +10,8 @@ help:
 	@echo "format        Format code with black and isort"
 	@echo "lint          Run linting checks"
 	@echo "docker-build  Build Docker image"
+	@echo "docker-size   Show Docker image sizes"
+	@echo "docker-compare Compare original vs optimized image sizes"
 	@echo "docker-run    Run Docker container"
 	@echo "version       Update version (usage: make version VERSION=1.1.0)"
 	@echo "tag           Create and push git tag (usage: make tag VERSION=1.1.0)"
@@ -51,8 +53,24 @@ lint:
 docker-build:
 	docker build -t trackmaster .
 
+docker-build-slim:
+	docker build -t trackmaster:slim .
+
 docker-run:
 	docker run -p 8000:8000 trackmaster
+
+docker-run-slim:
+	docker run -p 8000:8000 trackmaster:slim
+
+docker-size:
+	@echo "Docker Image Sizes:"
+	@echo "=================="
+	@docker images trackmaster --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}"
+	@echo ""
+	@echo "Base image (python:3.11-slim): $(shell docker images python:3.11-slim --format '{{.Size}}')"
+
+docker-compare:
+	./scripts/compare_docker_sizes.sh
 
 docker-compose-up:
 	docker-compose up --build

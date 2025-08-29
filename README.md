@@ -6,7 +6,7 @@ AI-powered audio mastering server that accepts WAV and MP3 files, performs intel
 
 - 🎵 **Multi-format Support**: WAV, MP3, FLAC, M4A
 - 🤖 **AI-Powered Mastering**: Intelligent EQ, compression, and loudness normalization
-- 🐳 **Docker Ready**: Easy deployment with Docker containers
+- 🐳 **Docker Ready**: Easy deployment with optimized containers (1.7GB vs 3GB+)
 - 📊 **Industry Standards**: LUFS-based loudness normalization (-14 LUFS default)
 - 🔄 **RESTful API**: Simple HTTP endpoints for integration
 - 📈 **Health Monitoring**: Built-in health checks and logging
