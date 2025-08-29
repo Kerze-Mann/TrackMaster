@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy requirements and install Python dependencies
-COPY requirements-slim.txt .
+COPY requirements.txt .
 COPY pyproject.toml .
 
 # Create virtual environment and install dependencies
@@ -24,7 +24,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Install optimized requirements (without PyTorch)
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements-slim.txt
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application code and install package
 COPY src/ ./src/

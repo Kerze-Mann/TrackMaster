@@ -16,7 +16,7 @@ with open('requirements.txt') as f:
 
 setup(
     name="trackmaster",
-    version="1.3.0",
+    version="1.3.1",
     author="TrackMaster Team",
     author_email="info@trackmaster.com",
     description="AI-powered audio mastering server",
